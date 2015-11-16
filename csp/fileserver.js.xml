@@ -25,12 +25,7 @@ function control($scope, $http) {
         reader.readAsDataURL(document.getElementById("myFile").files[0]);
         var place = document.getElementById("Logo");
 
-       
-
-
         var xhr = new XMLHttpRequest();
-
-
 
         // Upload data to server
         xhr.open("POST", "/fileserver/upload", true);
