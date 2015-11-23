@@ -3,47 +3,30 @@
 <Class name="Fileserver.Download">
 <Description>
 One download of a file. </Description>
+<Final>1</Final>
 <Super>%Persistent</Super>
-<TimeCreated>63140,74733.04832</TimeCreated>
+<TimeCreated>63879,84547</TimeCreated>
+<ServerOnly>1</ServerOnly>
 
-<Property name="DateCreated">
-<Description><![CDATA[
-Creation date of download  in <i>YYYY-MM-DD hh:mm:ss</i> format.]]></Description>
-<Type>%TimeStamp</Type>
-</Property>
-
-<Property name="DateActiveUntil">
-<Description><![CDATA[
-Download (as in file transfer) may be initiatyed by a client until this date in <i>YYYY-MM-DD hh:mm:ss</i> format.]]></Description>
-<Type>%TimeStamp</Type>
-</Property>
-
-<Property name="IP">
-<Description>
-IP of a client initiated creation of download.</Description>
-<Type>%String</Type>
-</Property>
+<Index name="DownloadIDIndex">
+<Internal>1</Internal>
+<IdKey>1</IdKey>
+<PrimaryKey>1</PrimaryKey>
+<Properties>DownloadID</Properties>
+</Index>
 
 <Property name="DownloadID">
 <Description>
 Random letter combination. NOT a private key.</Description>
 <Type>%String</Type>
-<Required>1</Required>
+<Internal>1</Internal>
+<InitialExpression>##class(%xsd.hexBinary).LogicalToXSD($system.Encryption.GenCryptRand(50,$$$YES))</InitialExpression>
+<Private>1</Private>
+<SqlColumnNumber>6</SqlColumnNumber>
+<ReadOnly>1</ReadOnly>
 <Parameter name="MAXLEN" value="100"/>
+<Parameter name="MINLEN" value="100"/>
 </Property>
-
-<Property name="DownloadCount">
-<Description>
-Number of filetransfers occured for this download.</Description>
-<Type>%Integer</Type>
-<InitialExpression>"0"</InitialExpression>
-<Required>1</Required>
-</Property>
-
-<Index name="DownloadIDIndex">
-<Properties>DownloadID</Properties>
-<Unique>1</Unique>
-</Index>
 
 <Property name="File">
 <Description>
@@ -52,34 +35,39 @@ File to download.</Description>
 <Cardinality>one</Cardinality>
 <Inverse>Downloads</Inverse>
 <Relationship>1</Relationship>
-<OnDelete>setnull</OnDelete>
+<Required>1</Required>
+<SqlColumnNumber>2</SqlColumnNumber>
+<OnDelete>cascade</OnDelete>
 </Property>
 
-<UDLText name="T">
-<Content><![CDATA[
-// Index FileIndex On FileTarg;
+<Property name="DateCreated">
+<Description><![CDATA[
+Creation date of download  in <i>YYYY-MM-DD hh:mm:ss</i> format.]]></Description>
+<Type>%TimeStamp</Type>
+<InitialExpression>$ZDATETIME($NOW(),3,1,6)</InitialExpression>
+<SqlColumnNumber>3</SqlColumnNumber>
+<ReadOnly>1</ReadOnly>
+</Property>
 
-]]></Content>
-</UDLText>
-
-<Method name="DownloadIDGenerate">
+<Property name="DownloadCount">
 <Description>
-Generate and set DownloadID. Generates random upper case string, from 64 to 96 symbols </Description>
-<ReturnType>%Status</ReturnType>
-<ServerOnly>1</ServerOnly>
-<Implementation><![CDATA[
-		
-	set temp = ""
-	set length = 64 + $Random(33)
-	for {
-    	set temp = temp _ $Char(65 + $Random(25))
-    	quit:$Length(temp)>length
-	}
+Number of filetransfers occured for this download.</Description>
+<Type>%Integer</Type>
+<InitialExpression>0</InitialExpression>
+<Required>1</Required>
+<SqlColumnNumber>4</SqlColumnNumber>
+<Parameter name="MINVAL" value="0"/>
+</Property>
 
-	set ..DownloadID = temp
-	Quit $$$OK
-]]></Implementation>
-</Method>
+<Property name="IP">
+<Description>
+IP of a client initiated creation of download.</Description>
+<Type>%NetworkAddress</Type>
+<InitialExpression>%request.GetCgiEnv("REMOTE_ADDR")</InitialExpression>
+<Required>1</Required>
+<SqlColumnNumber>5</SqlColumnNumber>
+<ReadOnly>1</ReadOnly>
+</Property>
 
 <Storage name="Default">
 <Type>%Library.CacheStorage</Type>
@@ -90,29 +78,19 @@ Generate and set DownloadID. Generates random upper case string, from 64 to 96 s
 <StreamLocation>^Fileserver.DownloadS</StreamLocation>
 <ExtentSize>100000</ExtentSize>
 <Data name="DownloadDefaultData">
+<Structure>listnode</Structure>
+<Subscript/>
 <Value name="1">
-<Value>%%CLASSNAME</Value>
+<Value>File</Value>
 </Value>
 <Value name="2">
 <Value>DateCreated</Value>
 </Value>
 <Value name="3">
-<Value>DateActiveUntil</Value>
+<Value>DownloadCount</Value>
 </Value>
 <Value name="4">
 <Value>IP</Value>
-</Value>
-<Value name="5">
-<Value>DownloadID</Value>
-</Value>
-<Value name="6">
-<Value>File</Value>
-</Value>
-<Value name="7">
-<Value>FileTarg</Value>
-</Value>
-<Value name="8">
-<Value>DownloadCount</Value>
 </Value>
 </Data>
 </Storage>

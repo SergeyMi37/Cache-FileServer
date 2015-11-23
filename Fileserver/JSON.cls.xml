@@ -1,9 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="Fileserver.JSON">
-<IncludeCode>%occErrors</IncludeCode>
-<Super>%Base</Super>
-<TimeCreated>63140,78388.642251</TimeCreated>
+<Final>1</Final>
+<Abstract>1</Abstract>
+<IncludeCode>%occErrors,%occUtility</IncludeCode>
+<TimeCreated>63879,84547</TimeCreated>
+<ServerOnly>1</ServerOnly>
+
+<Parameter name="UserFilesDir">
+<Type>STRING</Type>
+<Default>C:\UserFiles</Default>
+</Parameter>
+
+<Method name="CheckPermission">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>FileID:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[  quit ##class(Fileserver.File).%ExistsId(FileID)
+]]></Implementation>
+</Method>
+
+<Method name="GenerateDownload">
+<Description>
+Create Fileserver.Download object.</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>FileID:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+  set download=##class(Fileserver.Download).%New()
+  do download.FileSetObjectId(FileID)
+  do download.%Save()
+  quit download.%Id()
+]]></Implementation>
+</Method>
 
 <Method name="FileListToJSON">
 <Description>
@@ -11,21 +43,8 @@ Converts SQL query result to JSON.</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-		set st=$$$OK
-		try{
-			do ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,"SELECT ID, Name, Size, Extension FROM Fileserver.File")
-		} catch ex{
-			set st=ex.AsStatus()
-		}
-    	quit st
-]]></Implementation>
-</Method>
-
-<Method name="CheckPermission">
-<ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
-<ReturnType>%Boolean</ReturnType>
-<Implementation><![CDATA[	quit 1
+  do ##class(%ZEN.Auxiliary.altJSONSQLProvider).%WriteJSONFromSQL(,"select TOP 100 %ID,Name,Size,Extension from Fileserver.File order by DateModified desc,Name",,0)
+  quit $$$OK
 ]]></Implementation>
 </Method>
 
@@ -33,45 +52,27 @@ Converts SQL query result to JSON.</Description>
 <Description>
 Custom user actions to get access to file.</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
+<FormalSpec>FileID:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	set FileID=$ZSTRIP(FileID,"*E'N")
-	if (..CheckPermission(FileID))
-	{
-		set DownloadId=..GenerateDownload(FileID)
-		set DownloadLink="http://"_%request.GetCgiEnv("HTTP_HOST")_"/fileserver/download/"_DownloadId
-		&html<
-		<html>
-		<body style="text-align: center;">
-			<h2>Your download is ready</h2>
-			<h3>Active only for your IP for the next 24 hours</h3>
-			<a href="#(DownloadLink)#">Click to start your download</a>
-		</body>
-		</html>			
-		>
-	}
-	quit $$$OK
-]]></Implementation>
-</Method>
-
-<Method name="GenerateDownload">
-<Description>
-Create Fileserver.Download object.</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-	set download=##class(Fileserver.Download).%New()
-	set download.DateCreated=$ZDATETIME($NOW(),3)
-	set download.DateActiveUntil=$ZDATETIME(($PIECE($NOW(),",",1)+1)_","_$PIECE($NOW(),",",2),3) // Active for 24 hours
-	set download.IP=%request.GetCgiEnv("REMOTE_ADDR")
-	set download.File=##class(Fileserver.File).%OpenId(FileID)
-	do download.DownloadIDGenerate()
-	set DownloadID = download.DownloadID
-	do download.%Save()
-	kill download
-	quit DownloadID
+  if ..CheckPermission(FileID) {
+    set %response.ContentType="text/html"
+    &html<<!DOCTYPE html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+  <title> Fileserver </title>
+</head>
+<html>
+  <body style="text-align: center;">
+    <h2>Your download is ready</h2>
+    <h3>Active only for your IP for the next 24 hours</h3>
+    <a href="#("../download/"_..GenerateDownload(FileID))#">Click to start your download</a>
+  </body>
+</html>>
+  }
+  quit $$$OK
 ]]></Implementation>
 </Method>
 
@@ -82,36 +83,28 @@ Check if user has a correct Fileserver.Download object, serve him his file.</Des
 <FormalSpec>DownloadId:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	try {
-		&SQL(SELECT "File"->"Name","File"->"Directory","File"->"Size","IP","DownloadCount","DateActiveUntil" INTO :fname, :fdir, :fsize, :ip,:dcount,:dateactive FROM Fileserver.Download WHERE DownloadID=:DownloadId)
-		if (SQLCODE=0)
-		{
-			if ((ip=%request.GetCgiEnv("REMOTE_ADDR")) && ($ZDATETIMEH(dateactive,3,1)>$HOROLOG))
-			{
-				//w $ZDATETIMEH(dateactive,3,1)," ",$HOROLOG
-				set dcount=dcount+1
-				&SQL(UPDATE Fileserver.Download SET "DownloadCount"=:dcount WHERE DownloadID=:DownloadId)
-				//set %response.ContentLength=fsize
-				set %response.ContentType="application/octet-stream"
-				
-				do %response.SetHeader("Content-Disposition","attachment; filename="""_fname_"""")
-				set stream=##class(%FileBinaryStream).%New()
-				set stream.Filename=fdir_fname
-				while 'stream.AtEnd {
-				set line=stream.Read()
-					write line
-				}
-			}
-			else {
-				set st=$System.Status.Error($$$GeneralError,"Download time limit exceeded, or another IP")
-			}
-		} else {
-			set st = $System.Status.Error($$$SQLError, SQLCODE, "DownloadID not found")
-		}
-	}catch ex {
-		set st=$$$ADDSC($System.Status.Error($$$GeneralError,ex.AsSystemError()), st)
-	}
-	quit st
+  #dim %request As %CSP.Request
+  #dim %response As %CSP.Response
+  #dim st As %Status = $$$OK
+  try {
+    &SQL(SELECT %OBJECT("File"->"file"),"File"->Name INTO :oref,:name FROM Fileserver.Download WHERE DownloadID=:DownloadId and IP=:%request.GetCgiEnv("REMOTE_ADDR") and DATEADD('hh',-24,{fn NOW})<=DateCreated)
+    if (SQLCODE=0) {
+      &SQL(UPDATE Fileserver.Download SET DownloadCount=DownloadCount+1 WHERE DownloadID=:DownloadId)
+
+      kill %request.Data
+      set %request.Data("STREAMOID",1)=##class(%CSP.StreamServer).Encrypt(##class(%CSP.StreamServer).GetOidForFile(oref.Id))
+      if ##class(%CSP.StreamServer).OnPreHTTP() {
+        set %response.Headers("Content-Disposition")="attachment; filename*=UTF-8''"_##class(%CSP.Page).EscapeURL(name,"UTF8")
+        $$$ThrowOnError(##class(%CSP.StreamServer).OnPage())
+      }
+      
+    } else {
+      set st = $$$ERROR($$$GeneralError, "DownloadID not found, or download time limit exceeded, or another IP")
+    }
+  }catch ex {
+    set st=ex.AsStatus()
+  }
+  quit st
 ]]></Implementation>
 </Method>
 
@@ -121,31 +114,35 @@ Check if user has a correct Fileserver.Download object, serve him his file.</Des
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	#dim st As %Status = $$$OK
-	try {	
- 		set Location=$g(^Settings("user_files_dir"),"C:\UserFiles\")
-		set Stream =%request.GetMimeData("fotofile0",1)
-		set Name=$p(Stream.FileName,".",0,*-1)
-		set Extension=$p(Stream.FileName,".",*)
-		set FileName=Location_Name_"."_Extension
+  #dim %request As %CSP.Request
+  #dim st As %Status = $$$OK
+  try { 
+    set Location=##class(%File).NormalizeDirectory($GET(^Settings("user_files_dir"),..#UserFilesDir))
+    if '##class(%File).DirectoryExists(Location),'##class(%File).CreateDirectoryChain(Location) {
+      $$$ThrowStatus($$$ERROR($$$DirectoryCannotCreate,Location))
+    }
+    set Stream=%request.GetMimeData("fotofile0")
+    if $IsObject(Stream) {
+      set filename=##class(%File).GetFilename(Stream.FileName)
+      set Name=$PIECE(filename,".",0,*-1)
+      set Extension=$PIECE(filename,".",*)
+      set FileName=Location_Name_"."_Extension
 
-		set counter = 1
-		while ##class(%File).Exists(FileName) 
-		{
-			set FileName=Location_Name_"_("_counter_")."_Extension
-			set counter=counter+1
-		}
-		set file=##class(%Stream.FileBinary).%New()
-		set file.Filename=FileName
-		do file.CopyFromAndSave(Stream)
-		
-		do ##class(Fileserver.File).AddFile(FileName)
-		
-		kill file
-	}catch ex {
-		set st=$$$ADDSC($System.Status.Error($$$GeneralError,ex.AsSystemError()), st)
-	}
-	quit st
+      set counter = 1
+      while ##class(%File).Exists(FileName) 
+      {
+        set FileName=Location_Name_"("_counter_")."_Extension
+        set counter=counter+1
+      }
+      set file=##class(%Stream.FileBinary).%New()
+      set file.Filename=FileName
+      $$$ThrowOnError(file.CopyFromAndSave(Stream))
+    }
+    $$$ThrowOnError(##class(Fileserver.File).AddFile(FileName))
+  }catch ex {
+    set st=ex.AsStatus()
+  }
+  quit st
 ]]></Implementation>
 </Method>
 </Class>

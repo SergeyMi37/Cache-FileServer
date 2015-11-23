@@ -1,34 +1,210 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="Fileserver.Broker">
-<Description>
-Request map.</Description>
 <Super>%CSP.REST</Super>
-<TimeCreated>63140,63777.17696</TimeCreated>
+<TimeCreated>63879,86166</TimeCreated>
+
+<Parameter name="CHARSET">
+<Default>UTF-8</Default>
+</Parameter>
+
+<Parameter name="CONTENTTYPE">
+<Expression>..#CONTENTTYPEJSON</Expression>
+</Parameter>
+
+<Parameter name="CONVERTINPUTSTREAM">
+<Expression>$$$YES</Expression>
+</Parameter>
 
 <XData name="UrlMap">
+<XMLNamespace>http://www.intersystems.com/urlmap</XMLNamespace>
 <Data><![CDATA[
 <Routes>
+<Route Url="/readme" Method="GET" Call="Readme"/>  
+
 <Route Url="/getfilelist" Method="GET" Call="Fileserver.JSON:FileListToJSON"/> 
 <Route Url="/requestfile/:fileid" Method="GET" Call="Fileserver.JSON:RequestFile"/>
 <Route Url="/download/:downloadid" Method="GET" Call="Fileserver.JSON:DownloadFile"/>
 <Route Url="/upload" Method="POST" Call="Fileserver.JSON:UploadFile"/>
-<Route Url="/files" Method="GET" Call="csp.files:OnPage"/>
 
-<Route Url="/test" Method="GET" Call="Test"/>  
+<Route Url="/bootstrap-3-3-5/dist/css/bootstrap.min.css" Method="GET" Call="StaticFiles"/>
+<Route Url="/angular.min.js" Method="GET" Call="StaticFiles"/>
+
+<Route Url="/" Method="GET" Call="Files"/>  
+<Route Url=".*" Method="GET" Call="Readme"/>  
  </Routes>
 ]]></Data>
 </XData>
 
-<Method name="Test">
+<Method name="Readme">
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	&html<<h1>Status: OK!</h1><br>>
-	zw %request
-	&html<<br><br>>
-	zw %response
-	quit $$$OK
+  set %response.ContentType="text/html"
+  &html<<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+    <title>FileServer</title>
+  </head>
+  <body>
+    <h1>Caché-FileServer</h1>
+    <pre>================
+
+Seed for sharing files via uid with InterSystems Caché.<br>
+
+Install.<br>
+1. Create new namespace (eg. fileserver) with new database.<br>
+2. Import files (git-clone or download zip-archive).<br>
+3. Compile all files.<br>
+4. Create new web-application "/fileserver", with dispatch class: Fileserver.Broker<br>
+5. Set global ^Settings("user_files_dir") value as a path to directory, which would store user uploaded files.<br>
+
+If installation has been completed successfully, then your server will be available at: <a href=".">http://[server ip]:[server port]/fileserver/</a><br>
+Readme at: <a href="readme">http://[server ip]:[server port]/fileserver/readme</a><br>
+Add directory with files to fileserver:&nbsp;<FONT COLOR="#0000ff">do&nbsp;</FONT><FONT COLOR="#000080">##class</FONT><FONT COLOR="#000000">(</FONT><FONT COLOR="#008080">Fileserver.File</FONT><FONT COLOR="#000000">).</FONT><FONT COLOR="#0000ff">AddDir</FONT><FONT COLOR="#000000">(</FONT><FONT COLOR="#008000">&quot;Path\to\dir&quot;</FONT><FONT COLOR="#000000">)</FONT>
+    </pre>
+    <!--pre>#[zw %request]#<br>#[zw %response]#<pre-->
+  </body>
+</html>>
+  quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="Files">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  set %response.ContentType="text/html"
+  &html<<!DOCTYPE html>
+<html ng-app>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+  <title> Fileserver </title>
+  <link href="bootstrap-3-3-5/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+.table {
+  width: 80%;
+  margin:  1% 10% 0 10%;
+  text-align: center;
+}
+
+.upload {
+  margin: 0 auto;
+  width: 30%;
+  text-align: left;
+}
+
+#myfile {
+  text-align: left;
+}
+
+#progressBar {
+  height: 20px; 
+  padding: 0px;
+  margin-top: 0.5%; 
+}
+</style>
+  <script defer src="angular.min.js"></script>
+  <script type="text/javascript">
+function control($scope, $http) {
+
+  // Get list of files
+  $scope.getFiles = function () {
+    $http.get("getfilelist").success(
+      function (data)
+      {
+        $scope.files = data.children;
+      }).error(
+      function (data, status)
+      {
+        $scope.alerts.push({ type: "error", msg: "Error downloading filelist" });
+      })
+  };
+
+  $scope.FileLoad=function(){
+    var formData = new FormData();
+    for(var i=0;i<document.getElementById("myFile").files.length;i++){
+      formData.append("fotofile"+i, document.getElementById("myFile").files[i]);
+    }
+    var reader = new FileReader;
+    reader.readAsDataURL(document.getElementById("myFile").files[0]);
+    var place = document.getElementById("Logo");
+
+    var xhr = new XMLHttpRequest();
+
+    // Отправим данные на сервер
+    xhr.open("POST", "upload", true);
+    xhr.upload.onprogress = function(e) { // <<<
+      if (e.lengthComputable) {
+        progressBar.value = (e.loaded / e.total) * 100;
+      }
+    };
+    xhr.upload.onloadend=function(e){
+      progressBar.value = 100;
+
+    }
+    xhr.onreadystatechange=function(e){
+      if (xhr.readyState == 4) {
+        $scope.ddd=xhr.responseText;
+        var val = document.getElementById("adjrgsaderg");
+        val.value=xhr.responseText;
+      }
+    }
+    xhr.send(formData);
+
+    $scope.getFiles();
+  };
+
+};
+</script>
+</head>
+<body ng-controller="control" ng-init="getFiles();">
+  <h2 class="text-center">
+    Fileserver
+    <span class="label label-danger">HOT files</span>
+    <span class="label label-info">TOP speed</span>
+  </h2>
+  <div class="upload"> 
+      <input text="111" type="file" name="foto" style="padding: 1px" id="myFile" class=" btn btn-default form-control" ng-change="FileLoad()" ng-model="user.foto">
+      <progress id="progressBar" class="form-control" max="100"  value="0">
+      </progress>
+      <input  type="hidden" class="form-control" id="adjrgsaderg" ng-model="user.resp">
+    </div>
+  <table class="table table-hover">
+    <tr>
+      <td><b>Filename</b></td>
+      <td><b>Filesize</b></td>
+      <td><b>Download Link</b></td>
+    </tr>
+    <tr ng-repeat="file in files">
+      <td>{{file.Name}}</td>
+      <td>{{file.Size/1024 | number:0}} Kb</td>
+      <td><a href="requestfile/{{file.ID}}"  type="button" class="btn btn-success">Download</a></td>
+    </tr>
+  </table>  
+</body>
+</html>>
+  quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="StaticFiles">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>url</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  #dim st As %Status = $$$OK
+
+  kill %request.Data
+  set %request.Data("FILE",1)=%request.URL
+
+  set:##class(%CSP.StreamServer).OnPreHTTP() st=##class(%CSP.StreamServer).OnPage()
+  quit st
 ]]></Implementation>
 </Method>
 </Class>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="Fileserver.WebAppInstaller">
+<Super>%Projection.AbstractProjection</Super>
+<TimeCreated>63879,86166</TimeCreated>
+
+<Parameter name="AppName">
+<Default>/fileserver</Default>
+</Parameter>
+
+<Projection name="Reference">
+<Type>WebAppInstaller</Type>
+</Projection>
+
+<Method name="CreateProjection">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[classname:%String,&parameters:%String,modified:%String,qstruct]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  #dim st As %Status = $$$OK
+  try {
+    set ns = $namespace
+
+    $$$AddAllRoleTemporaryInTry
+    new $namespace
+    set $namespace="%SYS"
+
+    if '##class(Security.Applications).Exists(..#AppName) {
+      
+      do ##class(Security.System).GetInstallationSecuritySetting(.security)
+      set cspProperties("AutheEnabled") = $select(security="None":$$$AutheUnauthenticated,1:$$$AutheCache)
+      set cspProperties("NameSpace") = ns
+      set cspProperties("Description") = "A WEB application for Caché-FileServer."
+      set cspProperties("DispatchClass") = "Fileserver.Broker"
+
+      set rs=##class(%SQL.Statement).%ExecDirect(,"select top 1 Path from Security.Applications where (NameSpace=? and IsNameSpaceDefault=1 and %ID!=?) or %ID='/csp/broker' order by case when %ID='/csp/broker' then 1 else 0 end",ns,..#AppName)
+      set:rs.%Next() cspProperties("Path") = rs.Path
+      
+      write !, $$$FormatText("Creating WEB application %1 ...",$$$quote(..#AppName))
+      $$$ThrowOnError(##class(Security.Applications).Create(..#AppName, .cspProperties))
+      write !, $$$FormatText("WEB application %1 created.",$$$quote(..#AppName))
+    } else {
+      write !, $$$FormatText("WEB application %1 already exists, so it is ready to use.",$$$quote(..#AppName))
+    }
+  }catch(ex) {
+    set st=ex.AsStatus()
+  }
+  quit st
+]]></Implementation>
+</Method>
+
+<Method name="RemoveProjection">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[classname:%String,&parameters:%String,recompile:%Boolean,modified:%String,qstruct]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  #dim st As %Status = $$$OK
+  try {
+    $$$AddAllRoleTemporaryInTry
+    new $namespace
+    set $namespace="%SYS"
+
+    if ##class(Security.Applications).Exists(..#AppName) {
+      write !, $$$FormatText("Deleting WEB application %1 ...",$$$quote(..#AppName))
+      $$$ThrowOnError(##class(Security.Applications).Delete(..#AppName))
+      write !, $$$FormatText("WEB application %1 was successfully removed.",$$$quote(..#AppName))
+    }
+  }catch(ex) {
+    set st=ex.AsStatus()
+  }
+  quit st
+]]></Implementation>
+</Method>
+</Class>
+</Export>
