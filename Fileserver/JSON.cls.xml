@@ -43,7 +43,7 @@ Converts SQL query result to JSON.</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-  do ##class(%ZEN.Auxiliary.altJSONSQLProvider).%WriteJSONFromSQL(,"select TOP 100 %ID,Name,Size,Extension from Fileserver.File order by DateModified desc,Name",,0)
+  do ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,"SELECT TOP 100 %ID, Name, Size, Extension FROM Fileserver.File ORDER BY DateModified DESC,Name",,0)
   quit $$$OK
 ]]></Implementation>
 </Method>
