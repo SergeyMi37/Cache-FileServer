@@ -1,0 +1,21 @@
+.table {
+	width: 80%;
+	margin:  1% 10% 0 10%;
+	text-align: center;
+}
+
+.upload {
+	margin: 0 auto;
+	width: 30%;
+	text-align: left;
+}
+
+#myfile {
+	text-align: left;
+}
+
+#progressBar {
+	height: 20px; 
+	padding: 0px;
+	margin-top: 0.5%;	
+}
