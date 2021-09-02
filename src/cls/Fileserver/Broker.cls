@@ -1,13 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25">
-<Class name="Fileserver.Broker">
-<Description>
-Request map.</Description>
-<Super>%CSP.REST</Super>
-<TimeCreated>63140,63777.17696</TimeCreated>
+/// Request map.
+Class Fileserver.Broker Extends %CSP.REST
+{
 
-<XData name="UrlMap">
-<Data><![CDATA[
+XData UrlMap
+{
 <Routes>
 <Route Url="/getfilelist" Method="GET" Call="Fileserver.JSON:FileListToJSON"/> 
 <Route Url="/requestfile/:fileid" Method="GET" Call="Fileserver.JSON:RequestFile"/>
@@ -17,19 +13,16 @@ Request map.</Description>
 
 <Route Url="/test" Method="GET" Call="Test"/>  
  </Routes>
-]]></Data>
-</XData>
+}
 
-<Method name="Test">
-<ClassMethod>1</ClassMethod>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
+ClassMethod Test() As %Status
+{
 	&html<<h1>Status: OK!</h1><br>>
 	zw %request
 	&html<<br><br>>
 	zw %response
 	quit $$$OK
-]]></Implementation>
-</Method>
-</Class>
-</Export>
+}
+
+}
+

@@ -1,16 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25">
-<Class name="Fileserver.JSON">
-<IncludeCode>%occErrors</IncludeCode>
-<Super>%Base</Super>
-<TimeCreated>63140,78388.642251</TimeCreated>
+Include %occErrors
 
-<Method name="FileListToJSON">
-<Description>
-Converts SQL query result to JSON.</Description>
-<ClassMethod>1</ClassMethod>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
+Class Fileserver.JSON Extends %Base
+{
+
+/// Converts SQL query result to JSON.
+ClassMethod FileListToJSON() As %Status
+{
 		set st=$$$OK
 		try{
 			do ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,"SELECT ID, Name, Size, Extension FROM Fileserver.File")
@@ -18,24 +13,16 @@ Converts SQL query result to JSON.</Description>
 			set st=ex.AsStatus()
 		}
     	quit st
-]]></Implementation>
-</Method>
+}
 
-<Method name="CheckPermission">
-<ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
-<ReturnType>%Boolean</ReturnType>
-<Implementation><![CDATA[	quit 1
-]]></Implementation>
-</Method>
+ClassMethod CheckPermission(FileID As %Integer) As %Boolean
+{
+	quit 1
+}
 
-<Method name="RequestFile">
-<Description>
-Custom user actions to get access to file.</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
+/// Custom user actions to get access to file.
+ClassMethod RequestFile(FileID As %Integer) As %Status
+{
 	set FileID=$ZSTRIP(FileID,"*E'N")
 	if (..CheckPermission(FileID))
 	{
@@ -52,16 +39,11 @@ Custom user actions to get access to file.</Description>
 		>
 	}
 	quit $$$OK
-]]></Implementation>
-</Method>
+}
 
-<Method name="GenerateDownload">
-<Description>
-Create Fileserver.Download object.</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>FileID:%Integer</FormalSpec>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
+/// Create Fileserver.Download object.
+ClassMethod GenerateDownload(FileID As %Integer) As %String
+{
 	set download=##class(Fileserver.Download).%New()
 	set download.DateCreated=$ZDATETIME($NOW(),3)
 	set download.DateActiveUntil=$ZDATETIME(($PIECE($NOW(),",",1)+1)_","_$PIECE($NOW(),",",2),3) // Active for 24 hours
@@ -72,16 +54,11 @@ Create Fileserver.Download object.</Description>
 	do download.%Save()
 	kill download
 	quit DownloadID
-]]></Implementation>
-</Method>
+}
 
-<Method name="DownloadFile">
-<Description>
-Check if user has a correct Fileserver.Download object, serve him his file.</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>DownloadId:%String</FormalSpec>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
+/// Check if user has a correct Fileserver.Download object, serve him his file.
+ClassMethod DownloadFile(DownloadId As %String) As %Status
+{
 	try {
 		&SQL(SELECT "File"->"Name","File"->"Directory","File"->"Size","IP","DownloadCount","DateActiveUntil" INTO :fname, :fdir, :fsize, :ip,:dcount,:dateactive FROM Fileserver.Download WHERE DownloadID=:DownloadId)
 		if (SQLCODE=0)
@@ -112,15 +89,11 @@ Check if user has a correct Fileserver.Download object, serve him his file.</Des
 		set st=$$$ADDSC($System.Status.Error($$$GeneralError,ex.AsSystemError()), st)
 	}
 	quit st
-]]></Implementation>
-</Method>
+}
 
-<Method name="UploadFile">
-<Description>
-Check if user has a correct Fileserver.Download object, serve him his file.</Description>
-<ClassMethod>1</ClassMethod>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
+/// Check if user has a correct Fileserver.Download object, serve him his file.
+ClassMethod UploadFile() As %Status
+{
 	#dim st As %Status = $$$OK
 	try {	
  		set Location=$g(^Settings("user_files_dir"),"C:\UserFiles\")
@@ -146,7 +119,7 @@ Check if user has a correct Fileserver.Download object, serve him his file.</Des
 		set st=$$$ADDSC($System.Status.Error($$$GeneralError,ex.AsSystemError()), st)
 	}
 	quit st
-]]></Implementation>
-</Method>
-</Class>
-</Export>
+}
+
+}
+
