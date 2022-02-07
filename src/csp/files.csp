@@ -7,7 +7,7 @@
 <script src="/csp/fileserver/fileserver.js"></script>
 </head>
 <body ng-controller="control" ng-init="getFiles();">
-	<h2 class="text-center">
+	<h2 class="text-center" title='Refresh' onclick='location.reload();'>
 		Fileserver
 		<span class="label label-danger">HOT files</span>
 		<span class="label label-info">TOP speed</span>
