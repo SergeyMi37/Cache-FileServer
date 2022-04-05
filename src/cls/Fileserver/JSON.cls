@@ -27,10 +27,11 @@ ClassMethod RequestFile(FileID As %Integer) As %Status
 	if (..CheckPermission(FileID))
 	{
 		set DownloadId=..GenerateDownload(FileID)
-		set DownloadLink="http://"_%request.GetCgiEnv("HTTP_HOST")_"/fileserver/download/"_DownloadId
+		set DownloadLink="/fileserver/download/"_DownloadId
 		&html<
 		<html>
 		<body style="text-align: center;">
+		<button onclick="history.back()">Go Back</button>
 			<h2>Your download is ready</h2>
 			<h3>Active only for your IP for the next 24 hours</h3>
 			<a href="#(DownloadLink)#">Click to start your download</a>
