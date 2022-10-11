@@ -1,4 +1,5 @@
 ARG IMAGE=intersystemsdc/iris-community:2020.1.0.215.0-zpm 
+ARG IMAGE=intersystemsdc/iris-community
 FROM $IMAGE
 
 USER root   
@@ -8,7 +9,7 @@ RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 USER ${ISC_PACKAGE_MGRUSER}
 
 COPY  src src
-COPY  csp csp
+# COPY  csp csp
 COPY module.xml module.xml
 COPY iris.script /tmp/iris.script
 
